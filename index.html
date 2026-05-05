@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+  <head>
+	<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+	<title>Verovio Test</title>
+	<link href="Files/css.css" rel="stylesheet" type="text/css" />
+    <script src="https://www.verovio.org/javascript/latest/verovio-toolkit-wasm.js" defer></script>
+	<script src="https://www.midijs.net/lib/midi.js"></script>
+  </head>
+  <body>
+	<label>Select: </label>
+    <input id="start" type="text" placeholder="from..." />
+    <input id="end" type="text" placeholder="...to" />
+    <button id="applySelection">Apply</button>
+	<p>
+		<button id="prevPage">Previous Page </button>
+		<button id="nextPage">Next Page </button>
+		<button id="resetPage">Reset</button>
+	</P>
+	<p>
+		<button id="playMIDI">Play</button>
+		<button id="stopMIDI">Stop</button>
+	</p>
+	<p>
+		<button id="original">Version A</button>
+        <button id="revised">Version B</button>
+	</p>
+	<div id="notation"></div>
+	<script>
+		document.addEventListener("DOMContentLoaded", (event) => {
+		verovio.module.onRuntimeInitialized = function () {
+			const tk = new verovio.toolkit();
+			let appXPath = [];
+			let notationElement = document.getElementById("notation");
+			console.log("Verovio has loaded!");
+			console.log("Default options:", tk.getDefaultOptions());
+			
+			let currentPage = 1;
+			appXPath = [];
+			loadFile();
+			//ALLOWS FOR EDITORIAL STUFF
+			function loadFile() {
+		
+				//BASIC OPTIONS
+				let zoom = 100;
+				let pageHeight = document.body.clientHeight * 100 / zoom;
+				let pageWidth = document.body.clientWidth * 100 / zoom;
+			
+				//MEI STUFF
+				fetch("Files/lyrics.mei")
+					.then((response) => response.text())
+					.then((meiXML) => {
+					tk.setOptions({
+						pageWidth: document.body.clientWidth,
+						pageHeight: 1900,
+						scale: 100,
+						scaleToPageSize: true,
+						appXPathQuery: appXPath
+					});
+					console.log("Verovio options:", tk.getOptions());
+					tk.loadData(meiXML);
+					tk.redoLayout();
+					let svg = tk.renderToSVG(1);
+					document.getElementById("notation").innerHTML = svg;
+				});
+			}
+			
+			//VERSION SELECTION
+			const originalHandler = function () {
+				appXPath = [];
+				loadFile();
+			}
+			const revisedHandler = function () {
+				appXPath = ["./rdg[@source='revised']"];
+				loadFile();
+			}
+			document.getElementById("original").addEventListener("click", originalHandler);
+			document.getElementById("revised").addEventListener("click", revisedHandler);
+			
+			//PAGE SELECTION
+			const applySelectionHandler = function () {
+				let start = document.getElementById("start").value;
+				if (start === '') start = "start";
+				let end = document.getElementById("end").value;
+				if (end === '') end = "end";
+				let range = `${start}-${end}`;
+				tk.select({measureRange: range});
+				tk.redoLayout();
+				notationElement.innerHTML = tk.renderToSVG(currentPage);
+			}
+			const nextPageHandler = function () {
+				currentPage = Math.min(currentPage + 1, tk.getPageCount());
+				notationElement.innerHTML = tk.renderToSVG(currentPage);
+			}
+			const prevPageHandler = function () {
+				currentPage = Math.max(currentPage - 1, 1);
+				notationElement.innerHTML = tk.renderToSVG(currentPage);
+			}
+			const resetPageHandler = function () {
+				currentPage = (1);
+				notationElement.innerHTML = tk.renderToSVG(currentPage);
+			}
+			document.getElementById("nextPage").addEventListener("click", nextPageHandler);
+			document.getElementById("prevPage").addEventListener("click", prevPageHandler);
+			document.getElementById("resetPage").addEventListener("click", resetPageHandler);
+			document.getElementById("applySelection").addEventListener("click", applySelectionHandler);
+			
+			//MIDI STUFF
+			const playMIDIHandler = function () {
+				let base64midi = tk.renderToMIDI();
+				let midiString = 'data:audio/midi;base64,' + base64midi;
+				MIDIjs.play(midiString);
+			}
+			const stopMIDIHandler = function () {
+				MIDIjs.stop();
+				let playingNotes = document.querySelectorAll('g.note.playing');
+				for (let playingNote of playingNotes) {
+					playingNote.classList.remove("playing");
+				}
+			}
+			const midiHightlightingHandler = function (event) {
+				let playingNotes = document.querySelectorAll('g.note.playing');
+				for (let playingNote of playingNotes) playingNote.classList.remove("playing");
+				let currentElements = tk.getElementsAtTime(event.time * 1000);
+				console.log("Time:", event.time, "Page:", currentElements.page, "Notes:", currentElements.notes);
+				if (currentElements.notes.length > 0) {
+					let noteId = currentElements.notes[0];
+					let notePage = tk.getPageWithElement(noteId); 
+					if (notePage > 0 && notePage !== currentPage) {
+						currentPage = notePage;
+						document.getElementById("notation").innerHTML = tk.renderToSVG(currentPage);
+					}
+				}
+				for (note of currentElements.notes) {
+					let noteElement = document.getElementById(note);
+					if (noteElement) noteElement.classList.add("playing");
+				}
+			}
+			document.getElementById("playMIDI").addEventListener("click", playMIDIHandler);
+			document.getElementById("stopMIDI").addEventListener("click", stopMIDIHandler);
+			MIDIjs.player_callback = midiHightlightingHandler;
+		}
+		});
+    </script>
+  </body>
+</html>
