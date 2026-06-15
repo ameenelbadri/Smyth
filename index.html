@@ -61,7 +61,7 @@
 					console.log("Verovio options:", tk.getOptions());
 					tk.loadData(meiXML);
 					tk.redoLayout();
-					let svg = tk.renderToSVG(1);
+					let svg = tk.renderToSVG(currentPage);
 					document.getElementById("notation").innerHTML = svg;
 				});
 			}
