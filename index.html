@@ -9,139 +9,167 @@
 	<script src="https://www.midijs.net/lib/midi.js"></script>
   </head>
   <body>
-	<label>Select: </label>
-    <input id="start" type="text" placeholder="from..." />
-    <input id="end" type="text" placeholder="...to" />
-    <button id="applySelection">Apply</button>
-	<p>
-		<button id="prevPage">Previous Page </button>
-		<button id="nextPage">Next Page </button>
-		<button id="resetPage">Reset</button>
-	</P>
-	<p>
-		<button id="playMIDI">Play</button>
-		<button id="stopMIDI">Stop</button>
-	</p>
-	<p>
-		<button id="original">Version A</button>
-        <button id="revised">Version B</button>
-	</p>
-	<div id="notation"></div>
+  
+	<!-- VEROVIO -->
 	<script>
-		document.addEventListener("DOMContentLoaded", (event) => {
+	document.addEventListener("DOMContentLoaded", (event) => {
 		verovio.module.onRuntimeInitialized = function () {
+			
+			let activeToolkit = null;
+			let activeEngraving = null;
+			let activeCurrentPage = 1; 
+
+			function coreMEI(scoreId, baseParam = []) {
 			const tk = new verovio.toolkit();
-			let appXPath = [];
-			let notationElement = document.getElementById("notation");
-			console.log("Verovio has loaded!");
-			console.log("Default options:", tk.getDefaultOptions());
-			
 			let currentPage = 1;
-			appXPath = [];
-			loadFile();
-			//ALLOWS FOR EDITORIAL STUFF
-			function loadFile() {
-		
-				//BASIC OPTIONS
-				let zoom = 100;
-				let pageHeight = document.body.clientHeight * 100 / zoom;
-				let pageWidth = document.body.clientWidth * 100 / zoom;
-			
-				//MEI STUFF
+			const engraving = document.getElementById(scoreId);
+			const parent = engraving.parentElement;
+
+			function loadFile(appXPath = baseParam) {
 				fetch("Files/Overture.mei")
-					.then((response) => response.text())
-					.then((meiXML) => {
-					tk.setOptions({
-						pageWidth: document.body.clientWidth,
-						pageHeight: 1900,
-						scale: 100,
-						scaleToPageSize: true,
-						appXPathQuery: appXPath
+					.then(response => response.text())
+					.then(meiData => {
+						tk.setOptions({
+							pageWidth: engraving.clientWidth,
+							pageHeight: 450,
+							scale: 50,
+							scaleToPageSize: true,
+							appXPathQuery: appXPath
+						});
+						tk.loadData(meiData);
+						tk.redoLayout();
+						render();
 					});
-					console.log("Verovio options:", tk.getOptions());
-					tk.loadData(meiXML);
-					tk.redoLayout();
-					let svg = tk.renderToSVG(currentPage);
-					document.getElementById("notation").innerHTML = svg;
+			}
+			function render() {
+				document.startViewTransition(() => {
+					engraving.innerHTML = tk.renderToSVG(currentPage);
 				});
 			}
-			
-			//VERSION SELECTION
-			const originalHandler = function () {
-				appXPath = [];
-				loadFile();
-			}
-			const revisedHandler = function () {
-				appXPath = ["./rdg[@source='revised']"];
-				loadFile();
-			}
-			document.getElementById("original").addEventListener("click", originalHandler);
-			document.getElementById("revised").addEventListener("click", revisedHandler);
-			
-			//PAGE SELECTION
-			const applySelectionHandler = function () {
-				let start = document.getElementById("start").value;
-				if (start === '') start = "start";
-				let end = document.getElementById("end").value;
-				if (end === '') end = "end";
-				let range = `${start}-${end}`;
-				tk.select({measureRange: range});
+
+			//SELECT PAGE RANGE
+			parent.querySelector(".applySelection").addEventListener("click", () => {
+				const start = parent.querySelector(".start").value || "start";
+				const end = parent.querySelector(".end").value || "end";
+				tk.select({ measureRange: `${start}-${end}` });
 				tk.redoLayout();
-				notationElement.innerHTML = tk.renderToSVG(currentPage);
-			}
-			const nextPageHandler = function () {
-				currentPage = Math.min(currentPage + 1, tk.getPageCount());
-				notationElement.innerHTML = tk.renderToSVG(currentPage);
-			}
-			const prevPageHandler = function () {
-				currentPage = Math.max(currentPage - 1, 1);
-				notationElement.innerHTML = tk.renderToSVG(currentPage);
-			}
-			const resetPageHandler = function () {
-				currentPage = (1);
-				notationElement.innerHTML = tk.renderToSVG(currentPage);
-			}
-			document.getElementById("nextPage").addEventListener("click", nextPageHandler);
-			document.getElementById("prevPage").addEventListener("click", prevPageHandler);
-			document.getElementById("resetPage").addEventListener("click", resetPageHandler);
-			document.getElementById("applySelection").addEventListener("click", applySelectionHandler);
-			
-			//MIDI STUFF
-			const playMIDIHandler = function () {
-				let base64midi = tk.renderToMIDI();
-				let midiString = 'data:audio/midi;base64,' + base64midi;
-				MIDIjs.play(midiString);
-			}
-			const stopMIDIHandler = function () {
+				render();
+			});
+
+			//MIDI PLAYBACK
+			parent.querySelector(".playMIDI")?.addEventListener("click", () => {
+				activeToolkit = tk;
+				activeEngraving = engraving;
+				activeCurrentPage = currentPage;
+				const midi = tk.renderToMIDI();
+				MIDIjs.play('data:audio/midi;base64,' + midi);
+			});
+			parent.querySelector(".stopMIDI")?.addEventListener("click", () => {
 				MIDIjs.stop();
-				let playingNotes = document.querySelectorAll('g.note.playing');
+				let playingNotes = engraving.querySelectorAll('g.note.playing');
 				for (let playingNote of playingNotes) {
 					playingNote.classList.remove("playing");
 				}
+			});
+
+			//VERSION SELECTION
+			parent.querySelector(".versionA").addEventListener("click", () => loadFile([]));
+			parent.querySelector(".versionB").addEventListener("click", () => loadFile(["./rdg[@source='revised']"]));
+
+			//SELECT PAGES
+			parent.querySelector(".nextPage").addEventListener("click", () => {
+				currentPage = Math.min(currentPage + 1, tk.getPageCount());
+				render();
+			});
+			parent.querySelector(".prevPage").addEventListener("click", () => {
+				currentPage = Math.max(currentPage - 1, 1);
+				render();
+			});
+			parent.querySelector(".resetPage").addEventListener("click", () => {
+				currentPage = 1;
+				render();
+			});
+			loadFile();
 			}
-			const midiHightlightingHandler = function (event) {
-				let playingNotes = document.querySelectorAll('g.note.playing');
-				for (let playingNote of playingNotes) playingNote.classList.remove("playing");
-				let currentElements = tk.getElementsAtTime(event.time * 1000);
-				console.log("Time:", event.time, "Page:", currentElements.page, "Notes:", currentElements.notes);
+			
+			coreMEI("score1");
+			coreMEI("score2");
+			
+			//MIDI HIGHLIGHTING & PAGETURNING
+			const midiHighlightingHandler = function (event) {
+			if (!activeToolkit || !activeEngraving) return;
+			activeEngraving.querySelectorAll('g.note.playing')
+				.forEach(note => note.classList.remove("playing"));
+			let currentElements = activeToolkit.getElementsAtTime(event.time * 1000);
 				if (currentElements.notes.length > 0) {
 					let noteId = currentElements.notes[0];
-					let notePage = tk.getPageWithElement(noteId); 
-					if (notePage > 0 && notePage !== currentPage) {
-						currentPage = notePage;
-						document.getElementById("notation").innerHTML = tk.renderToSVG(currentPage);
+					let notePage = activeToolkit.getPageWithElement(noteId);
+					if (notePage > 0 && notePage !== activeCurrentPage) {
+						activeCurrentPage = notePage;
+						activeEngraving.innerHTML = activeToolkit.renderToSVG(activeCurrentPage);
 					}
-				}
-				for (note of currentElements.notes) {
-					let noteElement = document.getElementById(note);
+					currentElements.notes.forEach(note => {
+					let noteElement = activeEngraving.querySelector(`#${note}`);
 					if (noteElement) noteElement.classList.add("playing");
+					});
 				}
-			}
-			document.getElementById("playMIDI").addEventListener("click", playMIDIHandler);
-			document.getElementById("stopMIDI").addEventListener("click", stopMIDIHandler);
-			MIDIjs.player_callback = midiHightlightingHandler;
-		}
-		});
+			};
+			if (window.MIDIjs) {
+			MIDIjs.player_callback = midiHighlightingHandler;
+			}	
+		};
+	});
     </script>
+	
+	<!-- SCORE 1 -->
+	<div class="score-section">
+		<div class="button-group">
+		<label>Select: </label>
+		<input class="start" type="text" placeholder="from...">
+		<input class="end" type="text" placeholder="...to">
+		<button class="applySelection">Apply</button>
+		<button class="resetPage">Reset</button>
+		</div>
+		<div class="button-group">
+		<button class="playMIDI">Play</button>
+		<button class="stopMIDI">Stop</button>
+		</div>
+		<div class="button-group">
+		<button class="versionA">Version A</button>
+		<button class="versionB">Version B</button>
+		</div>
+		<div class="button-group">
+		<button class="prevPage">Prev</button>
+		<button class="nextPage">Next</button>
+		<button class="resetPage">Reset</button>
+		</div>
+		<div id="score1"></div>
+	</div>
+	
+	<!-- SCORE 2 -->
+	<div class="score-section">
+		<div class="button-group">
+		<label>Select: </label>
+		<input class="start" type="text" placeholder="from...">
+		<input class="end" type="text" placeholder="...to">
+		<button class="applySelection">Apply</button>
+		<button class="resetPage">Reset</button>
+		</div>
+		<div class="button-group">
+		<button class="playMIDI">Play</button>
+		<button class="stopMIDI">Stop</button>
+		</div>
+		<div class="button-group">
+		<button class="versionA">Version A</button>
+		<button class="versionB">Version B</button>
+		</div>
+		<div class="button-group">
+		<button class="prevPage">Prev</button>
+		<button class="nextPage">Next</button>
+		<button class="resetPage">Reset</button>
+		</div>
+		<div id="score2"></div>
+	</div>
+	
   </body>
 </html>

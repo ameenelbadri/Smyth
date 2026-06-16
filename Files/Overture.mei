@@ -95,7 +95,14 @@
                         </layer>
                      </staff>
                      <tempo xml:id="tpw8o8a" type="mscore-infer-from-text" midi.bpm="174" staff="1" tstamp="1">Moderato (<rend glyph.auth="smufl"></rend> = 116)</tempo>
-                     <dynam xml:id="d15hf5d1" label="f" staff="1" startid="#c22byc1">f pesante.</dynam>
+                     <app>
+					 <lem source="original">
+						<dynam xml:id="d15hf5d1" label="f" staff="1" startid="#c22byc1">f pesante.</dynam>
+					 </lem>
+					 <rdg source="revised">
+						<dynam xml:id="d15hf5d1" label="p" staff="1" startid="#c22byc1">p pesante.</dynam>
+					 </rdg>
+					 </app>
                      <tie xml:id="twxdy2f" startid="#n1683nm7" endid="#ny9znky" />
                      <tie xml:id="t9l4pkf" startid="#n18k2a6n" endid="#n1mhqccp" />
                      <tie xml:id="t1umnos6" startid="#n1aaxumg" endid="#npeh8ni" />
