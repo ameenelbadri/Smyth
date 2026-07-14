@@ -25,6 +25,10 @@ g.note.playing {
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
+
+.score-section[hidden] {
+	display: none;
+}
  
 .score-section > div[id^="score"] {
 	width: 100%;
@@ -39,4 +43,78 @@ g.note.playing {
     border: 1px solid rgba(117, 124, 136, 0.3);
     border-radius: 12px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.navbar {
+background-color: #333;
+font-family: Arial, Helvetica, sans-serif;
+display: flow-root;
+}
+
+.navbar a {
+float: left;
+font-size: 16px;
+color: white;
+text-align: center;
+padding: 14px 16px;
+text-decoration: none;
+}
+
+.dropdown {
+float: left;
+position: relative;
+}
+
+.dropdown .dropbtn {
+cursor: pointer;
+font-size: 16px;  
+border: none;
+outline: none;
+color: white;
+padding: 14px 16px;
+background-color: inherit;
+font-family: inherit;
+margin: 0;
+}
+
+.navbar a:hover, .dropdown:hover .dropbtn, .dropbtn:focus {
+background-color: red;
+}
+
+.navbar a.compare-toggle {
+cursor: pointer;
+}
+
+.navbar a.compare-toggle.is-active {
+background-color: #1f6feb;
+}
+
+.navbar a.compare-toggle.is-active:hover {
+background-color: #1f6feb;
+}
+
+.dropdown-content {
+display: none;
+position: absolute;
+background-color: #f9f9f9;
+min-width: 160px;
+box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+z-index: 1;
+}
+
+.dropdown-content a {
+float: none;
+color: black;
+padding: 12px 16px;
+text-decoration: none;
+display: block;
+text-align: left;
+}
+
+.dropdown-content a:hover {
+background-color: #ddd;
+}
+
+.show {
+display: block;
 }

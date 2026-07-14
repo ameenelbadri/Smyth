@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <title>Les Naufrageurs - Home</title>
+    </head>
+    <style>
+    body {
+	background: rgba(51, 51, 51);
+	margin: 10px;
+    }
+
+    .navbar {
+    background-color: #333;
+    font-family: Arial, Helvetica, sans-serif;
+    display: flow-root;
+    }
+
+    .navbar a {
+    float: left;
+    font-size: 16px;
+    color: white;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+    }
+
+    .dropdown {
+    float: left;
+    position: relative;
+    }
+
+    .dropdown .dropbtn {
+    cursor: pointer;
+    font-size: 16px;  
+    border: none;
+    outline: none;
+    color: white;
+    padding: 14px 16px;
+    background-color: inherit;
+    font-family: inherit;
+    margin: 0;
+    }
+
+    .navbar a:hover, .dropdown:hover .dropbtn, .dropbtn:focus {
+    background-color: red;
+    }
+
+    .dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+    }
+
+    .dropdown-content a {
+    float: none;
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    text-align: left;
+    }
+
+    .dropdown-content a:hover {
+    background-color: #ddd;
+    }
+
+    .show {
+    display: block;
+    }
+    </style>
+
+    <body>
+
+        <!--NAVIGATION BAR-->
+        <div class="navbar">
+        <a href="main.html">Home</a>
+        <div class="dropdown">
+        <button class="dropbtn" onclick="toggleDropdown('myDropdown1')">Act I
+            <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content" id="myDropdown1">
+            <a href="index.html?act=1&scene=prelude">Prélude</a>
+            <a href="index.html?act=1&scene=1">Scène I</a>
+            <a href="">Scène II</a>
+            <a href="">Scène III</a>
+            <a href="">Scène IV</a>
+            <a href="">Scène V</a>
+            <a href="">Scène VI</a>
+            <a href="">Scène VII</a>
+            <a href="">Scène VIII</a>
+            <a href="">Scène IX</a>
+            <a href="">Scène X</a>
+            <a href="">Scène XI</a>
+        </div>
+        </div>
+        <div class="dropdown">
+        <button class="dropbtn" onclick="toggleDropdown('myDropdown2')">Act II
+            <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content" id="myDropdown2">
+            <a href="">Prélude</a>
+            <a href="">Scène I</a>
+            <a href="">Scène II</a>
+            <a href="">Scène III</a>
+            <a href="">Scène IV</a>
+            <a href="">Scène V</a>
+        </div>
+        </div>
+        <div class="dropdown">
+        <button class="dropbtn" onclick="toggleDropdown('myDropdown3')">Act III
+            <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content" id="myDropdown3">
+            <a href="">Scène I</a>
+            <a href="">Scène II</a>
+        </div>
+        </div>
+        </div>
+
+        <script>
+        function toggleDropdown(dropdownId) {
+            document.querySelectorAll(".dropdown-content").forEach(function(dropdown) {
+                if (dropdown.id !== dropdownId) {
+                    dropdown.classList.remove("show");
+                }
+            });
+
+            document.getElementById(dropdownId).classList.toggle("show");
+        }
+
+        window.onclick = function(e) {
+            if (!e.target.matches(".dropbtn")) {
+                document.querySelectorAll(".dropdown-content").forEach(function(dropdown) {
+                    dropdown.classList.remove("show");
+                });
+            }
+        }
+
+        const sceneLinks = {
+            myDropdown1: ["prelude", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"],
+            myDropdown2: ["prelude", "1", "2", "3", "4", "5"],
+            myDropdown3: ["1", "2"]
+        };
+
+        Object.entries(sceneLinks).forEach(function([dropdownId, scenes]) {
+            const act = dropdownId.replace("myDropdown", "");
+            document.querySelectorAll(`#${dropdownId} a`).forEach(function(link, index) {
+                link.href = `index.html?act=${act}&scene=${scenes[index]}`;
+            });
+        });
+        </script>
+
+        <h1>Home Information</h1>
+    </body>
+</html>

@@ -3,12 +3,91 @@
   <head>
 	<meta charset="utf-8">
     <meta name="viewport" content="width=device-width">
-	<title>Verovio Test</title>
+	<title>Les Naufrageurs - Score Viewer</title>
 	<link href="Files/css.css" rel="stylesheet" type="text/css" />
     <script src="https://www.verovio.org/javascript/latest/verovio-toolkit-wasm.js" defer></script>
 	<script src="https://www.midijs.net/lib/midi.js"></script>
   </head>
   <body>
+
+	<!-- NAVIGATION BAR-->
+	<div class="navbar">
+	<a href="main.html">Home</a>
+	<div class="dropdown">
+	<button class="dropbtn" onclick="toggleDropdown('myDropdown1')">Act I
+		<i class="fa fa-caret-down"></i>
+	</button>
+	<div class="dropdown-content" id="myDropdown1">
+		<a href="index.html">Prélude</a>
+		<a href="">Scène I</a>
+		<a href="">Scène II</a>
+		<a href="">Scène III</a>
+		<a href="">Scène IV</a>
+		<a href="">Scène V</a>
+		<a href="">Scène VI</a>
+		<a href="">Scène VII</a>
+		<a href="">Scène VIII</a>
+		<a href="">Scène IX</a>
+		<a href="">Scène X</a>
+		<a href="">Scène XI</a>
+	</div>
+	</div>
+	<div class="dropdown">
+	<button class="dropbtn" onclick="toggleDropdown('myDropdown2')">Act II
+		<i class="fa fa-caret-down"></i>
+	</button>
+	<div class="dropdown-content" id="myDropdown2">
+		<a href="">Prélude</a>
+		<a href="">Scène I</a>
+		<a href="">Scène II</a>
+		<a href="">Scène III</a>
+		<a href="">Scène IV</a>
+		<a href="">Scène V</a>
+	</div>
+	</div>
+	<div class="dropdown">
+	<button class="dropbtn" onclick="toggleDropdown('myDropdown3')">Act III
+		<i class="fa fa-caret-down"></i>
+	</button>
+	<div class="dropdown-content" id="myDropdown3">
+		<a href="">Scène I</a>
+		<a href="">Scène II</a>
+	</div>
+	</div>
+	<a href="#" id="compareToggle" class="compare-toggle" aria-pressed="false">Compare</a>
+	</div>
+	<script>
+	function toggleDropdown(dropdownId) {
+		document.querySelectorAll(".dropdown-content").forEach(function(dropdown) {
+			if (dropdown.id !== dropdownId) {
+				dropdown.classList.remove("show");
+			}
+		});
+
+		document.getElementById(dropdownId).classList.toggle("show");
+	}
+
+	window.onclick = function(e) {
+		if (!e.target.matches(".dropbtn")) {
+			document.querySelectorAll(".dropdown-content").forEach(function(dropdown) {
+				dropdown.classList.remove("show");
+			});
+		}
+	}
+
+	const sceneLinks = {
+		myDropdown1: ["prelude", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"],
+		myDropdown2: ["prelude", "1", "2", "3", "4", "5"],
+		myDropdown3: ["1", "2"]
+	};
+
+	Object.entries(sceneLinks).forEach(function([dropdownId, scenes]) {
+		const act = dropdownId.replace("myDropdown", "");
+		document.querySelectorAll(`#${dropdownId} a`).forEach(function(link, index) {
+			link.href = `index.html?act=${act}&scene=${scenes[index]}`;
+		});
+	});
+	</script>
   
 	<!-- VEROVIO -->
 	<script>
@@ -18,6 +97,9 @@
 			let activeToolkit = null;
 			let activeEngraving = null;
 			let activeCurrentPage = 1; 
+			let compareScoreLoaded = false;
+			const compareButton = document.getElementById("compareToggle");
+			const compareSection = document.getElementById("compareScoreSection");
 
 			function coreMEI(scoreId, baseParam = []) {
 			const tk = new verovio.toolkit();
@@ -26,8 +108,15 @@
 			const parent = engraving.parentElement;
 
 			function loadFile(appXPath = baseParam) {
-				fetch("Files/Overture.mei")
-					.then(response => response.text())
+				const meiFile = currentScene?.mei || getSceneMeiFile();
+
+				fetch(meiFile)
+					.then(response => {
+						if (!response.ok) {
+							throw new Error(`Could not load ${meiFile}`);
+						}
+						return response.text();
+					})
 					.then(meiData => {
 						tk.setOptions({
 							pageWidth: engraving.clientWidth,
@@ -37,14 +126,43 @@
 							appXPathQuery: appXPath
 						});
 						tk.loadData(meiData);
+						const barRange = getBarRange();
+
+						if (barRange) {
+							tk.select({ measureRange: barRange });
+						}
+
 						tk.redoLayout();
+						const startingBar = getStartingBar();
+
+						if (startingBar) {
+							const measureId = getMeasureId(meiData, startingBar);
+							const measurePage = measureId ? tk.getPageWithElement(measureId) : 0;
+
+							if (measurePage > 0) {
+								currentPage = measurePage;
+							}
+						} else {
+							currentPage = 1;
+						}
+
 						render();
+					})
+					.catch(error => {
+						engraving.textContent = error.message;
+						console.error(error);
 					});
 			}
 			function render() {
-				document.startViewTransition(() => {
+				const updateScore = () => {
 					engraving.innerHTML = tk.renderToSVG(currentPage);
-				});
+				};
+
+				if (document.startViewTransition) {
+					document.startViewTransition(updateScore);
+				} else {
+					updateScore();
+				}
 			}
 
 			//SELECT PAGE RANGE
@@ -93,7 +211,30 @@
 			}
 			
 			coreMEI("score1");
-			coreMEI("score2");
+
+			compareButton.addEventListener("click", (event) => {
+				event.preventDefault();
+
+				const compareIsActive = compareButton.classList.toggle("is-active");
+				compareButton.setAttribute("aria-pressed", compareIsActive);
+				compareSection.hidden = !compareIsActive;
+
+				if (compareIsActive && !compareScoreLoaded) {
+					coreMEI("score2");
+					compareScoreLoaded = true;
+				}
+
+				if (!compareIsActive) {
+					document.getElementById("score2").innerHTML = "";
+					compareScoreLoaded = false;
+
+					if (activeEngraving?.id === "score2") {
+						MIDIjs.stop();
+						activeToolkit = null;
+						activeEngraving = null;
+					}
+				}
+			});
 			
 			//MIDI HIGHLIGHTING & PAGETURNING
 			const midiHighlightingHandler = function (event) {
@@ -120,6 +261,90 @@
 		};
 	});
     </script>
+
+	<!--SCORE SELECTION & URL PARAMS-->
+	<script>
+	const params = new URLSearchParams(window.location.search);
+
+	const act = params.get("act");
+	const scene = params.get("scene");
+	const bar = params.get("bar");
+
+	console.log("Act:", act);
+	console.log("Scene:", scene);
+	console.log("Bar:", bar);
+
+	const scenes = {
+	"1-prelude": {
+		title: "Act I - Prélude",
+		mei: "Files/act1-prelude.mei"
+	},
+	"1-1": {
+		title: "Act I - Scène I",
+		mei: "Files/act1-scene1.mei"
+	},
+	};
+
+	const key = `${act}-${scene}`;
+	const currentScene = scenes[key];
+	const pageTitle = `Les Naufrageurs - ${getSceneTitle()}`;
+
+	document.title = pageTitle;
+	document.addEventListener("DOMContentLoaded", () => {
+		document.getElementById("sceneTitle").textContent = pageTitle;
+	});
+
+	function getSceneTitle() {
+		const actNames = {
+			1: "Act I",
+			2: "Act II",
+			3: "Act III"
+		};
+		const selectedAct = act || "1";
+		const selectedScene = scene || "prelude";
+		const actTitle = actNames[selectedAct] || `Act ${selectedAct}`;
+
+		if (selectedScene === "prelude") {
+			return `${actTitle}, Prélude`;
+		}
+
+		return `${actTitle}, Scène ${selectedScene}`;
+	}
+
+	function getSceneMeiFile() {
+		const selectedAct = act || "1";
+		const selectedScene = scene || "prelude";
+
+		if (selectedScene === "prelude") {
+			return `Files/act${selectedAct}-prelude.mei`;
+		}
+
+		return `Files/act${selectedAct}-scene${selectedScene}.mei`;
+	}
+
+	function getBarRange() {
+		if (!bar) {
+			return null;
+		}
+
+		if (/^\d+-\d+$/.test(bar)) {
+			return bar;
+		}
+
+		return null;
+	}
+
+	function getStartingBar() {
+		return /^\d+$/.test(bar) ? bar : null;
+	}
+
+	function getMeasureId(meiData, measureNumber) {
+		const meiDocument = new DOMParser().parseFromString(meiData, "application/xml");
+		const measure = meiDocument.querySelector(`measure[n="${measureNumber}"]`);
+
+		return measure?.getAttribute("xml:id") || null;
+	}
+	</script>
 	
 	<!-- SCORE 1 -->
 	<div class="score-section">
@@ -147,7 +372,7 @@
 	</div>
 	
 	<!-- SCORE 2 -->
-	<div class="score-section">
+	<div class="score-section" id="compareScoreSection" hidden>
 		<div class="button-group">
 		<label>Select: </label>
 		<input class="start" type="text" placeholder="from...">
