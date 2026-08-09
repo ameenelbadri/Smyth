@@ -18,19 +18,19 @@
 		<i class="fa fa-caret-down"></i>
 	</button>
 	<div class="dropdown-content" id="myDropdown1">
-		<a href="index.html">Prélude</a>
-		<a href="">Scène I</a>
-		<a href="">Scène II</a>
-		<a href="">Scène III</a>
-		<a href="">Scène IV</a>
-		<a href="">Scène V</a>
-		<a href="">Scène VI</a>
-		<a href="">Scène VII</a>
-		<a href="">Scène VIII</a>
-		<a href="">Scène IX</a>
-		<a href="">Scène X</a>
-		<a href="">Scène XI</a>
-	</div>
+        <a href="index.html?act=1&scene=prelude">Prélude</a>
+        <a href="index.html?act=1&scene=1">Scène I</a>
+        <a href="index.html?act=1&scene=2">Scène II</a>
+        <a href="index.html?act=1&scene=3">Scène III</a>
+        <a href="index.html?act=1&scene=4">Scène IV</a>
+        <a href="index.html?act=1&scene=5">Scène V</a>
+        <a href="index.html?act=1&scene=6">Scène VI</a>
+        <a href="index.html?act=1&scene=7">Scène VII</a>
+        <a href="index.html?act=1&scene=8">Scène VIII</a>
+        <a href="index.html?act=1&scene=9">Scène IX</a>
+        <a href="index.html?act=1&scene=10">Scène X</a>
+        <a href="index.html?act=1&scene=11">Scène XI</a>
+    </div>
 	</div>
 	<div class="dropdown">
 	<button class="dropbtn" onclick="toggleDropdown('myDropdown2')">Act II
@@ -120,8 +120,8 @@
 					.then(meiData => {
 						tk.setOptions({
 							pageWidth: engraving.clientWidth,
-							pageHeight: 450,
-							scale: 50,
+							pageHeight: engraving.clientHeight,
+							scale: 100,
 							scaleToPageSize: true,
 							appXPathQuery: appXPath
 						});
