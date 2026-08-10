@@ -3,6 +3,12 @@ body {
 	margin: 10px;
 }
 
+.selected-note,
+.selected-note * {
+	fill: limegreen;
+	stroke: limegreen;
+}
+
 g.note.playing {
 	fill: crimson;
 }

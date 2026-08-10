@@ -120,9 +120,11 @@
 					.then(meiData => {
 						tk.setOptions({
 							pageWidth: engraving.clientWidth,
-							pageHeight: engraving.clientHeight,
-							scale: 100,
+							pageHeight: 1000,
+							scale: 50,
 							scaleToPageSize: true,
+							condense: "auto",
+							condenseFirstPage: true,
 							appXPathQuery: appXPath
 						});
 						tk.loadData(meiData);
@@ -203,10 +205,13 @@
 				currentPage = Math.max(currentPage - 1, 1);
 				render();
 			});
-			parent.querySelector(".resetPage").addEventListener("click", () => {
-				currentPage = 1;
-				render();
+			parent.querySelectorAll(".resetPage").forEach(resetButton => {
+				resetButton.addEventListener("click", () => {
+					currentPage = 1;
+					loadFile();
+				});
 			});
+
 			loadFile();
 			}
 			
@@ -395,6 +400,46 @@
 		</div>
 		<div id="score2"></div>
 	</div>
+
+	<!-- Mutation Observer-->
+	<script>
+	function clearSelectedNotes() {
+		document
+			.querySelectorAll("g.note.selected-note")
+			.forEach(note => note.classList.remove("selected-note"));
+	}
+
+	function observeScoreRender(scoreId, onRender) {
+		const score = document.getElementById(scoreId);
+
+		const observer = new MutationObserver(() => {
+			const svg = score.querySelector("svg");
+			if (svg) onRender(svg, score, observer);
+			svg.querySelectorAll("g.note").forEach(note => {
+				note.addEventListener("click", (event) => {
+					event.stopPropagation();
+					clearSelectedNotes();
+					note.classList.add("selected-note");
+					console.log()
+				});
+			});
+		});
+
+		observer.observe(score, { childList: true });
+	}
+
+	document.addEventListener("click", clearSelectedNotes);
+
+	document.addEventListener("DOMContentLoaded", () => {
+		observeScoreRender("score1", (svg) => {
+			console.log("score1 rendered", svg);
+		});
+
+		observeScoreRender("score2", (svg) => {
+			console.log("score2 rendered", svg);
+		});
+	});
+	</script>
 	
   </body>
 </html>
