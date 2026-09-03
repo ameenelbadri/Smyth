@@ -280,7 +280,7 @@
                      <measure xml:id="s2u6zml" n="4">
                         <staff xml:id="b1k32oeh" n="1">
                            <layer xml:id="d45kqv0" n="1">
-                              <annot xml:id="aj58t1b1" plist="#h41nyxi" type="score">TEST</annot>
+                              <annot xml:id="aj58t1b1" plist="#h41nyxi" type="score">ANNOTATION TEST</annot>
                               <chord xml:id="g1ov0z9h" dur.ppq="24" dur="4" stem.dir="up">
                                  <note xml:id="e10fridd" oct="4" pname="d">
                                     <accid xml:id="f1m8cxk5" />

@@ -120,13 +120,19 @@
 					.then(meiData => {
 						tk.setOptions({
 							pageWidth: engraving.clientWidth,
-							pageHeight: 1000,
+							pageHeight: getVerovioPageHeight(engraving),
+							adjustPageHeight: true,
 							scale: 50,
 							scaleToPageSize: true,
 							condense: "auto",
 							condenseFirstPage: true,
 							appXPathQuery: appXPath
 						});
+						
+						const annotations = extractAnnotations(meiData);
+						sessionStorage.setItem(`annotations:${meiFile}`, JSON.stringify(annotations));
+						console.log(annotations);
+
 						tk.loadData(meiData);
 						const barRange = getBarRange();
 
@@ -165,6 +171,22 @@
 				} else {
 					updateScore();
 				}
+			}
+
+			//EXTRACT ANNOTATIONS
+			function extractAnnotations(meiData) {
+				const MEI_NS = "http://www.music-encoding.org/ns/mei";
+				const XML_NS = "http://www.w3.org/XML/1998/namespace";
+
+				const meiDocument = new DOMParser().parseFromString(meiData, "application/xml");
+
+				return Array.from(meiDocument.getElementsByTagNameNS(MEI_NS, "annot")).map(annot => ({
+					id: annot.getAttributeNS(XML_NS, "id") || annot.getAttribute("xml:id"),
+					type: annot.getAttribute("type"),
+					plist: annot.getAttribute("plist"),
+					text: annot.textContent.trim(),
+					plistArray: getPlistArray(annot)
+				}));
 			}
 
 			//SELECT PAGE RANGE
@@ -213,9 +235,27 @@
 			});
 
 			loadFile();
+
+			return {
+				reload() {
+					loadFile();
+				},
+				resize() {
+					const engravingWidth = engraving.clientWidth || parent.clientWidth;
+
+					tk.setOptions({
+						pageWidth: engravingWidth,
+						pageHeight: scene === "prelude" ? 100 : Math.min(engravingWidth, window.innerHeight - 200)
+					});
+
+					tk.redoLayout();
+					render();
+				}
+			};
 			}
 			
-			coreMEI("score1");
+			const score1Controller = coreMEI("score1");
+			let score2Controller = null;
 
 			compareButton.addEventListener("click", (event) => {
 				event.preventDefault();
@@ -223,15 +263,23 @@
 				const compareIsActive = compareButton.classList.toggle("is-active");
 				compareButton.setAttribute("aria-pressed", compareIsActive);
 				compareSection.hidden = !compareIsActive;
+				document.body.classList.toggle("compare-active", compareIsActive);
 
 				if (compareIsActive && !compareScoreLoaded) {
-					coreMEI("score2");
-					compareScoreLoaded = true;
+					requestAnimationFrame(() => {
+						score1Controller.resize();
+						score2Controller = coreMEI("score2");
+						compareScoreLoaded = true;
+					});
 				}
 
 				if (!compareIsActive) {
 					document.getElementById("score2").innerHTML = "";
 					compareScoreLoaded = false;
+
+					requestAnimationFrame(() => {
+						score1Controller.resize();
+					});
 
 					if (activeEngraving?.id === "score2") {
 						MIDIjs.stop();
@@ -327,6 +375,24 @@
 		return `Files/act${selectedAct}-scene${selectedScene}.mei`;
 	}
 
+	function shouldStackCompareScores() {
+		const selectedAct = act || "1";
+		const selectedScene = scene || "prelude";
+
+		return selectedScene === "prelude" && ["1", "2"].includes(selectedAct);
+	}
+	document.body.classList.toggle("stacked-compare", shouldStackCompareScores());
+
+	function getVerovioPageHeight(engraving) {
+		const selectedScene = scene || "prelude";
+
+		if (selectedScene === "prelude") {
+			return 100;
+		}
+
+		return Math.min(engraving.clientWidth, window.innerHeight - 200);
+	}
+
 	function getBarRange() {
 		if (!bar) {
 			return null;
@@ -351,62 +417,132 @@
 	}
 	</script>
 	
-	<!-- SCORE 1 -->
-	<div class="score-section">
-		<div class="button-group">
-		<label>Select: </label>
-		<input class="start" type="text" placeholder="from...">
-		<input class="end" type="text" placeholder="...to">
-		<button class="applySelection">Apply</button>
-		<button class="resetPage">Reset</button>
+	<!-- SCORES ON WEBPAGE -->
+	<div id="scoreLayout" class="score-layout">
+		
+		<!-- SCORE 1 -->
+		<div class="score-section">
+			<div class="button-group">
+			<label>Select: </label>
+			<input class="start" type="text" placeholder="from...">
+			<input class="end" type="text" placeholder="...to">
+			<button class="applySelection">Apply</button>
+			<button class="resetPage">Reset</button>
+			</div>
+			<div class="button-group">
+			<button class="playMIDI">Play</button>
+			<button class="stopMIDI">Stop</button>
+			</div>
+			<div class="button-group">
+			<button class="versionA">Version A</button>
+			<button class="versionB">Version B</button>
+			</div>
+			<div class="button-group">
+			<button class="prevPage">Prev</button>
+			<button class="nextPage">Next</button>
+			<button class="resetPage">Reset</button>
+			</div>
+			<div id="score1"></div>
 		</div>
-		<div class="button-group">
-		<button class="playMIDI">Play</button>
-		<button class="stopMIDI">Stop</button>
+		
+		<!-- SCORE 2 -->
+		<div class="score-section" id="compareScoreSection" hidden>
+			<div class="button-group">
+			<label>Select: </label>
+			<input class="start" type="text" placeholder="from...">
+			<input class="end" type="text" placeholder="...to">
+			<button class="applySelection">Apply</button>
+			<button class="resetPage">Reset</button>
+			</div>
+			<div class="button-group">
+			<button class="playMIDI">Play</button>
+			<button class="stopMIDI">Stop</button>
+			</div>
+			<div class="button-group">
+			<button class="versionA">Version A</button>
+			<button class="versionB">Version B</button>
+			</div>
+			<div class="button-group">
+			<button class="prevPage">Prev</button>
+			<button class="nextPage">Next</button>
+			<button class="resetPage">Reset</button>
+			</div>
+			<div id="score2"></div>
 		</div>
-		<div class="button-group">
-		<button class="versionA">Version A</button>
-		<button class="versionB">Version B</button>
-		</div>
-		<div class="button-group">
-		<button class="prevPage">Prev</button>
-		<button class="nextPage">Next</button>
-		<button class="resetPage">Reset</button>
-		</div>
-		<div id="score1"></div>
-	</div>
-	
-	<!-- SCORE 2 -->
-	<div class="score-section" id="compareScoreSection" hidden>
-		<div class="button-group">
-		<label>Select: </label>
-		<input class="start" type="text" placeholder="from...">
-		<input class="end" type="text" placeholder="...to">
-		<button class="applySelection">Apply</button>
-		<button class="resetPage">Reset</button>
-		</div>
-		<div class="button-group">
-		<button class="playMIDI">Play</button>
-		<button class="stopMIDI">Stop</button>
-		</div>
-		<div class="button-group">
-		<button class="versionA">Version A</button>
-		<button class="versionB">Version B</button>
-		</div>
-		<div class="button-group">
-		<button class="prevPage">Prev</button>
-		<button class="nextPage">Next</button>
-		<button class="resetPage">Reset</button>
-		</div>
-		<div id="score2"></div>
 	</div>
 
-	<!-- Mutation Observer-->
+	<!-- Mutation Observer (NOTE SELECTION)-->
 	<script>
 	function clearSelectedNotes() {
 		document
 			.querySelectorAll("g.note.selected-note")
 			.forEach(note => note.classList.remove("selected-note"));
+	}
+
+	function getPlistArray(element) {
+		return element.getAttribute("plist")
+			?.split(/\s+/)
+			.map(id => id.replace("#", ""));
+	}
+
+	function getAnnotationsForElement(elementId) {
+		const annotations = JSON.parse(
+			sessionStorage.getItem(`annotations:${getSceneMeiFile()}`) || "[]"
+		);
+
+		console.log(elementId, annotations, annotations.filter(annotation => { return annotation.plistArray.includes(elementId);}));
+		return annotations.filter(annotation => {
+			//const plistIds = getPlistArray(annotation)
+			//return plistIds?.includes(elementId);
+			return annotation.plistArray.includes(elementId);
+		});
+	}
+
+	function clearAnnotationBoxes(svg = document) {
+		svg.querySelectorAll(".annotation-box").forEach(box => box.remove());
+	}
+
+	function showAnnotationBox(svg, note, text) {
+		const SVG_NS = "http://www.w3.org/2000/svg";
+
+		const noteRect = note.getBoundingClientRect();
+		const svgPoint = svg.createSVGPoint();
+
+		svgPoint.x = noteRect.left + noteRect.width / 2;
+		svgPoint.y = noteRect.top;
+
+		const svgCoords = svgPoint.matrixTransform(svg.getScreenCTM().inverse());
+
+		const group = document.createElementNS(SVG_NS, "g");
+		group.classList.add("annotation-box");
+
+		group.addEventListener("click", (event) => {
+			event.stopPropagation();
+		});
+
+		const padding = 8;
+		const boxWidth = 220;
+		const boxHeight = 42;
+		const x = svgCoords.x - boxWidth / 2;
+		const y = svgCoords.y - boxHeight - 12;
+
+		const rect = document.createElementNS(SVG_NS, "rect");
+		rect.setAttribute("x", x);
+		rect.setAttribute("y", y);
+		rect.setAttribute("width", boxWidth);
+		rect.setAttribute("height", boxHeight);
+		rect.setAttribute("rx", 4);
+
+		const label = document.createElementNS(SVG_NS, "text");
+		label.setAttribute("x", x + padding);
+		label.setAttribute("y", y + 25);
+		label.setAttribute("font-size", "14");
+		label.setAttribute("font-family", "Arial, Helvetica, sans-serif");
+		label.textContent = text;
+
+		group.appendChild(rect);
+		group.appendChild(label);
+		svg.appendChild(group);
 	}
 
 	function observeScoreRender(scoreId, onRender) {
@@ -419,8 +555,17 @@
 				note.addEventListener("click", (event) => {
 					event.stopPropagation();
 					clearSelectedNotes();
+					clearAnnotationBoxes(svg);
 					note.classList.add("selected-note");
-					console.log()
+					const noteId = note.id;
+					console.log(note);
+					const matchingAnnotations = getAnnotationsForElement(noteId);
+					if (matchingAnnotations.length > 0) {
+						const annotationText = matchingAnnotations
+							.map(annotation => annotation.text)
+							.join("\n");
+						showAnnotationBox(svg, note, annotationText);
+					}
 				});
 			});
 		});
@@ -428,7 +573,10 @@
 		observer.observe(score, { childList: true });
 	}
 
-	document.addEventListener("click", clearSelectedNotes);
+	document.addEventListener("click", () => {
+		clearSelectedNotes();
+		clearAnnotationBoxes();
+	});
 
 	document.addEventListener("DOMContentLoaded", () => {
 		observeScoreRender("score1", (svg) => {

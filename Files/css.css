@@ -124,3 +124,60 @@ background-color: #ddd;
 .show {
 display: block;
 }
+
+/*SCORES LAYOUT*/
+.score-layout {
+	display: block;
+}
+
+body.compare-active:not(.stacked-compare) .score-layout {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	gap: 10px;
+	align-items: start;
+}
+
+.score-layout > .score-section {
+	min-width: 0;
+	margin: 10px 0;
+}
+
+body.stacked-compare .score-layout {
+	display: block;
+}
+
+body.stacked-compare .score-layout > .score-section {
+	width: 100%;
+	flex: none;
+}
+
+.score-section {
+	overflow: auto;
+}
+
+.score-section > div[id^="score"] {
+	width: 100%;
+	min-width: 0;
+}
+
+.score-section svg {
+	max-width: 100%;
+	height: auto;
+}
+
+/*ANNOTATIONS*/
+.annotation-box {
+	pointer-events: auto;
+	cursor: default;
+}
+
+.annotation-box rect {
+	fill: rgba(51, 51, 51);
+	stroke: limegreen !important;
+	stroke-width: 3px !important;
+}
+
+.annotation-box text {
+	fill: white;
+	stroke: none;
+}
