@@ -31,7 +31,14 @@
                   <pgHead xml:id="zcexk4t" func="first">
                      <rend xml:id="x1jyylne" halign="center" valign="top">Act I</rend>
                      <rend xml:id="a1q4y5tq" halign="center" valign="top">Prélude</rend>
-                     <rend xml:id="c1h6jhp5" halign="right" valign="bottom">E. M. Smyth.</rend>
+                     <app>
+                        <lem>
+                           <rend xml:id="c1h6jhp5" halign="right" valign="bottom">E. M. Smyth.</rend>
+                        </lem>
+                        <rdg source="revised">
+                           <rend xml:id="c1h6jhp5" halign="right" valign="bottom">Smyth</rend>
+                        </rdg>
+                     </app>
                   </pgHead>
                   <staffGrp xml:id="e11o1w5y">
                      <staffGrp xml:id="P1" bar.thru="true">

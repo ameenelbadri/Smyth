@@ -1,593 +1,75 @@
 <!DOCTYPE html>
 <html>
-  <head>
-	<meta charset="utf-8">
-    <meta name="viewport" content="width=device-width">
-	<title>Les Naufrageurs - Score Viewer</title>
-	<link href="Files/css.css" rel="stylesheet" type="text/css" />
-    <script src="https://www.verovio.org/javascript/latest/verovio-toolkit-wasm.js" defer></script>
-	<script src="https://www.midijs.net/lib/midi.js"></script>
-  </head>
-  <body>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <link href="index.css" rel="stylesheet" type="text/css" />
+        <title>Les Naufrageurs - Home</title>
+    </head>
 
-	<!-- NAVIGATION BAR-->
-	<div class="navbar">
-	<a href="main.html">Home</a>
-	<div class="dropdown">
-	<button class="dropbtn" onclick="toggleDropdown('myDropdown1')">Act I
-		<i class="fa fa-caret-down"></i>
-	</button>
-	<div class="dropdown-content" id="myDropdown1">
-        <a href="index.html?act=1&scene=prelude">Prélude</a>
-        <a href="index.html?act=1&scene=1">Scène I</a>
-        <a href="index.html?act=1&scene=2">Scène II</a>
-        <a href="index.html?act=1&scene=3">Scène III</a>
-        <a href="index.html?act=1&scene=4">Scène IV</a>
-        <a href="index.html?act=1&scene=5">Scène V</a>
-        <a href="index.html?act=1&scene=6">Scène VI</a>
-        <a href="index.html?act=1&scene=7">Scène VII</a>
-        <a href="index.html?act=1&scene=8">Scène VIII</a>
-        <a href="index.html?act=1&scene=9">Scène IX</a>
-        <a href="index.html?act=1&scene=10">Scène X</a>
-        <a href="index.html?act=1&scene=11">Scène XI</a>
-    </div>
-	</div>
-	<div class="dropdown">
-	<button class="dropbtn" onclick="toggleDropdown('myDropdown2')">Act II
-		<i class="fa fa-caret-down"></i>
-	</button>
-	<div class="dropdown-content" id="myDropdown2">
-		<a href="">Prélude</a>
-		<a href="">Scène I</a>
-		<a href="">Scène II</a>
-		<a href="">Scène III</a>
-		<a href="">Scène IV</a>
-		<a href="">Scène V</a>
-	</div>
-	</div>
-	<div class="dropdown">
-	<button class="dropbtn" onclick="toggleDropdown('myDropdown3')">Act III
-		<i class="fa fa-caret-down"></i>
-	</button>
-	<div class="dropdown-content" id="myDropdown3">
-		<a href="">Scène I</a>
-		<a href="">Scène II</a>
-	</div>
-	</div>
-	<a href="#" id="compareToggle" class="compare-toggle" aria-pressed="false">Compare</a>
-	</div>
-	<script>
-	function toggleDropdown(dropdownId) {
-		document.querySelectorAll(".dropdown-content").forEach(function(dropdown) {
-			if (dropdown.id !== dropdownId) {
-				dropdown.classList.remove("show");
-			}
-		});
+    <body>
 
-		document.getElementById(dropdownId).classList.toggle("show");
-	}
-
-	window.onclick = function(e) {
-		if (!e.target.matches(".dropbtn")) {
-			document.querySelectorAll(".dropdown-content").forEach(function(dropdown) {
-				dropdown.classList.remove("show");
-			});
-		}
-	}
-
-	const sceneLinks = {
-		myDropdown1: ["prelude", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"],
-		myDropdown2: ["prelude", "1", "2", "3", "4", "5"],
-		myDropdown3: ["1", "2"]
-	};
-
-	Object.entries(sceneLinks).forEach(function([dropdownId, scenes]) {
-		const act = dropdownId.replace("myDropdown", "");
-		document.querySelectorAll(`#${dropdownId} a`).forEach(function(link, index) {
-			link.href = `index.html?act=${act}&scene=${scenes[index]}`;
-		});
-	});
-	</script>
-  
-	<!-- VEROVIO -->
-	<script>
-	document.addEventListener("DOMContentLoaded", (event) => {
-		verovio.module.onRuntimeInitialized = function () {
-			
-			let activeToolkit = null;
-			let activeEngraving = null;
-			let activeCurrentPage = 1; 
-			let compareScoreLoaded = false;
-			const compareButton = document.getElementById("compareToggle");
-			const compareSection = document.getElementById("compareScoreSection");
-
-			function coreMEI(scoreId, baseParam = []) {
-			const tk = new verovio.toolkit();
-			let currentPage = 1;
-			const engraving = document.getElementById(scoreId);
-			const parent = engraving.parentElement;
-
-			function loadFile(appXPath = baseParam) {
-				const meiFile = currentScene?.mei || getSceneMeiFile();
-
-				fetch(meiFile)
-					.then(response => {
-						if (!response.ok) {
-							throw new Error(`Could not load ${meiFile}`);
-						}
-						return response.text();
-					})
-					.then(meiData => {
-						tk.setOptions({
-							pageWidth: engraving.clientWidth,
-							pageHeight: getVerovioPageHeight(engraving),
-							adjustPageHeight: true,
-							scale: 50,
-							scaleToPageSize: true,
-							condense: "auto",
-							condenseFirstPage: true,
-							appXPathQuery: appXPath
-						});
-						
-						const annotations = extractAnnotations(meiData);
-						sessionStorage.setItem(`annotations:${meiFile}`, JSON.stringify(annotations));
-						console.log(annotations);
-
-						tk.loadData(meiData);
-						const barRange = getBarRange();
-
-						if (barRange) {
-							tk.select({ measureRange: barRange });
-						}
-
-						tk.redoLayout();
-						const startingBar = getStartingBar();
-
-						if (startingBar) {
-							const measureId = getMeasureId(meiData, startingBar);
-							const measurePage = measureId ? tk.getPageWithElement(measureId) : 0;
-
-							if (measurePage > 0) {
-								currentPage = measurePage;
-							}
-						} else {
-							currentPage = 1;
-						}
-
-						render();
-					})
-					.catch(error => {
-						engraving.textContent = error.message;
-						console.error(error);
-					});
-			}
-			function render() {
-				const updateScore = () => {
-					engraving.innerHTML = tk.renderToSVG(currentPage);
-				};
-
-				if (document.startViewTransition) {
-					document.startViewTransition(updateScore);
-				} else {
-					updateScore();
-				}
-			}
-
-			//EXTRACT ANNOTATIONS
-			function extractAnnotations(meiData) {
-				const MEI_NS = "http://www.music-encoding.org/ns/mei";
-				const XML_NS = "http://www.w3.org/XML/1998/namespace";
-
-				const meiDocument = new DOMParser().parseFromString(meiData, "application/xml");
-
-				return Array.from(meiDocument.getElementsByTagNameNS(MEI_NS, "annot")).map(annot => ({
-					id: annot.getAttributeNS(XML_NS, "id") || annot.getAttribute("xml:id"),
-					type: annot.getAttribute("type"),
-					plist: annot.getAttribute("plist"),
-					text: annot.textContent.trim(),
-					plistArray: getPlistArray(annot)
-				}));
-			}
-
-			//SELECT PAGE RANGE
-			parent.querySelector(".applySelection").addEventListener("click", () => {
-				const start = parent.querySelector(".start").value || "start";
-				const end = parent.querySelector(".end").value || "end";
-				tk.select({ measureRange: `${start}-${end}` });
-				tk.redoLayout();
-				render();
-			});
-
-			//MIDI PLAYBACK
-			parent.querySelector(".playMIDI")?.addEventListener("click", () => {
-				activeToolkit = tk;
-				activeEngraving = engraving;
-				activeCurrentPage = currentPage;
-				const midi = tk.renderToMIDI();
-				MIDIjs.play('data:audio/midi;base64,' + midi);
-			});
-			parent.querySelector(".stopMIDI")?.addEventListener("click", () => {
-				MIDIjs.stop();
-				let playingNotes = engraving.querySelectorAll('g.note.playing');
-				for (let playingNote of playingNotes) {
-					playingNote.classList.remove("playing");
-				}
-			});
-
-			//VERSION SELECTION
-			parent.querySelector(".versionA").addEventListener("click", () => loadFile([]));
-			parent.querySelector(".versionB").addEventListener("click", () => loadFile(["./rdg[@source='revised']"]));
-
-			//SELECT PAGES
-			parent.querySelector(".nextPage").addEventListener("click", () => {
-				currentPage = Math.min(currentPage + 1, tk.getPageCount());
-				render();
-			});
-			parent.querySelector(".prevPage").addEventListener("click", () => {
-				currentPage = Math.max(currentPage - 1, 1);
-				render();
-			});
-			parent.querySelectorAll(".resetPage").forEach(resetButton => {
-				resetButton.addEventListener("click", () => {
-					currentPage = 1;
-					loadFile();
-				});
-			});
-
-			loadFile();
-
-			return {
-				reload() {
-					loadFile();
-				},
-				resize() {
-					const engravingWidth = engraving.clientWidth || parent.clientWidth;
-
-					tk.setOptions({
-						pageWidth: engravingWidth,
-						pageHeight: scene === "prelude" ? 100 : Math.min(engravingWidth, window.innerHeight - 200)
-					});
-
-					tk.redoLayout();
-					render();
-				}
-			};
-			}
-			
-			const score1Controller = coreMEI("score1");
-			let score2Controller = null;
-
-			compareButton.addEventListener("click", (event) => {
-				event.preventDefault();
-
-				const compareIsActive = compareButton.classList.toggle("is-active");
-				compareButton.setAttribute("aria-pressed", compareIsActive);
-				compareSection.hidden = !compareIsActive;
-				document.body.classList.toggle("compare-active", compareIsActive);
-
-				if (compareIsActive && !compareScoreLoaded) {
-					requestAnimationFrame(() => {
-						score1Controller.resize();
-						score2Controller = coreMEI("score2");
-						compareScoreLoaded = true;
-					});
-				}
-
-				if (!compareIsActive) {
-					document.getElementById("score2").innerHTML = "";
-					compareScoreLoaded = false;
-
-					requestAnimationFrame(() => {
-						score1Controller.resize();
-					});
-
-					if (activeEngraving?.id === "score2") {
-						MIDIjs.stop();
-						activeToolkit = null;
-						activeEngraving = null;
-					}
-				}
-			});
-			
-			//MIDI HIGHLIGHTING & PAGETURNING
-			const midiHighlightingHandler = function (event) {
-			if (!activeToolkit || !activeEngraving) return;
-			activeEngraving.querySelectorAll('g.note.playing')
-				.forEach(note => note.classList.remove("playing"));
-			let currentElements = activeToolkit.getElementsAtTime(event.time * 1000);
-				if (currentElements.notes.length > 0) {
-					let noteId = currentElements.notes[0];
-					let notePage = activeToolkit.getPageWithElement(noteId);
-					if (notePage > 0 && notePage !== activeCurrentPage) {
-						activeCurrentPage = notePage;
-						activeEngraving.innerHTML = activeToolkit.renderToSVG(activeCurrentPage);
-					}
-					currentElements.notes.forEach(note => {
-					let noteElement = activeEngraving.querySelector(`#${note}`);
-					if (noteElement) noteElement.classList.add("playing");
-					});
-				}
-			};
-			if (window.MIDIjs) {
-			MIDIjs.player_callback = midiHighlightingHandler;
-			}	
-		};
-	});
-    </script>
-
-	<!--SCORE SELECTION & URL PARAMS-->
-	<script>
-	const params = new URLSearchParams(window.location.search);
-
-	const act = params.get("act");
-	const scene = params.get("scene");
-	const bar = params.get("bar");
-
-	console.log("Act:", act);
-	console.log("Scene:", scene);
-	console.log("Bar:", bar);
-
-	const scenes = {
-	"1-prelude": {
-		title: "Act I - Prélude",
-		mei: "Files/act1-prelude.mei"
-	},
-	"1-1": {
-		title: "Act I - Scène I",
-		mei: "Files/act1-scene1.mei"
-	},
-	};
-
-	const key = `${act}-${scene}`;
-	const currentScene = scenes[key];
-	const pageTitle = `Les Naufrageurs - ${getSceneTitle()}`;
-
-	document.title = pageTitle;
-	document.addEventListener("DOMContentLoaded", () => {
-		document.getElementById("sceneTitle").textContent = pageTitle;
-	});
-
-	function getSceneTitle() {
-		const actNames = {
-			1: "Act I",
-			2: "Act II",
-			3: "Act III"
-		};
-		const selectedAct = act || "1";
-		const selectedScene = scene || "prelude";
-		const actTitle = actNames[selectedAct] || `Act ${selectedAct}`;
-
-		if (selectedScene === "prelude") {
-			return `${actTitle}, Prélude`;
-		}
-
-		return `${actTitle}, Scène ${selectedScene}`;
-	}
-
-	function getSceneMeiFile() {
-		const selectedAct = act || "1";
-		const selectedScene = scene || "prelude";
-
-		if (selectedScene === "prelude") {
-			return `Files/act${selectedAct}-prelude.mei`;
-		}
-
-		return `Files/act${selectedAct}-scene${selectedScene}.mei`;
-	}
-
-	function shouldStackCompareScores() {
-		const selectedAct = act || "1";
-		const selectedScene = scene || "prelude";
-
-		return selectedScene === "prelude" && ["1", "2"].includes(selectedAct);
-	}
-	document.body.classList.toggle("stacked-compare", shouldStackCompareScores());
-
-	function getVerovioPageHeight(engraving) {
-		const selectedScene = scene || "prelude";
-
-		if (selectedScene === "prelude") {
-			return 100;
-		}
-
-		return Math.min(engraving.clientWidth, window.innerHeight - 200);
-	}
-
-	function getBarRange() {
-		if (!bar) {
-			return null;
-		}
-
-		if (/^\d+-\d+$/.test(bar)) {
-			return bar;
-		}
-
-		return null;
-	}
-
-	function getStartingBar() {
-		return /^\d+$/.test(bar) ? bar : null;
-	}
-
-	function getMeasureId(meiData, measureNumber) {
-		const meiDocument = new DOMParser().parseFromString(meiData, "application/xml");
-		const measure = meiDocument.querySelector(`measure[n="${measureNumber}"]`);
-
-		return measure?.getAttribute("xml:id") || null;
-	}
-	</script>
-	
-	<!-- SCORES ON WEBPAGE -->
-	<div id="scoreLayout" class="score-layout">
+        <!--NAVIGATION BAR-->
+        <div class="navbar">
+        <a href="index.html">Home</a>
+        <div class="dropdown">
+        <button class="dropbtn" onclick="toggleDropdown('myDropdown1')">Act I
+            <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content" id="myDropdown1">
+            <a href="">Prélude</a>
+            <a href="">Scène I</a>
+            <a href="">Scène II</a>
+            <a href="">Scène III</a>
+            <a href="">Scène IV</a>
+            <a href="">Scène V</a>
+            <a href="">Scène VI</a>
+            <a href="">Scène VII</a>
+            <a href="">Scène VIII</a>
+            <a href="">Scène IX</a>
+            <a href="">Scène X</a>
+            <a href="">Scène XI</a>
+        </div>
+        </div>
+        <div class="dropdown">
+        <button class="dropbtn" onclick="toggleDropdown('myDropdown2')">Act II
+            <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content" id="myDropdown2">
+            <a href="">Prélude</a>
+            <a href="">Scène I</a>
+            <a href="">Scène II</a>
+            <a href="">Scène III</a>
+            <a href="">Scène IV</a>
+            <a href="">Scène V</a>
+        </div>
+        </div>
+        <div class="dropdown">
+        <button class="dropbtn" onclick="toggleDropdown('myDropdown3')">Act III
+            <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content" id="myDropdown3">
+            <a href="">Scène I</a>
+            <a href="">Scène II</a>
+        </div>
+        </div>
+        <a href="pages/sandbox.html" id="testSandbox" class="test-sandbox" aria-pressed="false">Sandbox</a>
+        </div>
 		
-		<!-- SCORE 1 -->
-		<div class="score-section">
-			<div class="button-group">
-			<label>Select: </label>
-			<input class="start" type="text" placeholder="from...">
-			<input class="end" type="text" placeholder="...to">
-			<button class="applySelection">Apply</button>
-			<button class="resetPage">Reset</button>
-			</div>
-			<div class="button-group">
-			<button class="playMIDI">Play</button>
-			<button class="stopMIDI">Stop</button>
-			</div>
-			<div class="button-group">
-			<button class="versionA">Version A</button>
-			<button class="versionB">Version B</button>
-			</div>
-			<div class="button-group">
-			<button class="prevPage">Prev</button>
-			<button class="nextPage">Next</button>
-			<button class="resetPage">Reset</button>
-			</div>
-			<div id="score1"></div>
-		</div>
-		
-		<!-- SCORE 2 -->
-		<div class="score-section" id="compareScoreSection" hidden>
-			<div class="button-group">
-			<label>Select: </label>
-			<input class="start" type="text" placeholder="from...">
-			<input class="end" type="text" placeholder="...to">
-			<button class="applySelection">Apply</button>
-			<button class="resetPage">Reset</button>
-			</div>
-			<div class="button-group">
-			<button class="playMIDI">Play</button>
-			<button class="stopMIDI">Stop</button>
-			</div>
-			<div class="button-group">
-			<button class="versionA">Version A</button>
-			<button class="versionB">Version B</button>
-			</div>
-			<div class="button-group">
-			<button class="prevPage">Prev</button>
-			<button class="nextPage">Next</button>
-			<button class="resetPage">Reset</button>
-			</div>
-			<div id="score2"></div>
-		</div>
-	</div>
+		<!-- NAVIGATION BAR SCRIPT -->
+        <script src="scripts/navigationBar.js" defer></script>
 
-	<!-- Mutation Observer (NOTE SELECTION)-->
-	<script>
-	function clearSelectedNotes() {
-		document
-			.querySelectorAll("g.note.selected-note")
-			.forEach(note => note.classList.remove("selected-note"));
-	}
-
-	function getPlistArray(element) {
-		return element.getAttribute("plist")
-			?.split(/\s+/)
-			.map(id => id.replace("#", ""));
-	}
-
-	function getAnnotationsForElement(elementId) {
-		const annotations = JSON.parse(
-			sessionStorage.getItem(`annotations:${getSceneMeiFile()}`) || "[]"
-		);
-
-		console.log(elementId, annotations, annotations.filter(annotation => { return annotation.plistArray.includes(elementId);}));
-		return annotations.filter(annotation => {
-			//const plistIds = getPlistArray(annotation)
-			//return plistIds?.includes(elementId);
-			return annotation.plistArray.includes(elementId);
-		});
-	}
-
-	function clearAnnotationBoxes(svg = document) {
-		svg.querySelectorAll(".annotation-box").forEach(box => box.remove());
-	}
-
-	function showAnnotationBox(svg, note, text) {
-		const SVG_NS = "http://www.w3.org/2000/svg";
-
-		const noteRect = note.getBoundingClientRect();
-		const svgPoint = svg.createSVGPoint();
-
-		svgPoint.x = noteRect.left + noteRect.width / 2;
-		svgPoint.y = noteRect.top;
-
-		const svgCoords = svgPoint.matrixTransform(svg.getScreenCTM().inverse());
-
-		const group = document.createElementNS(SVG_NS, "g");
-		group.classList.add("annotation-box");
-
-		group.addEventListener("click", (event) => {
-			event.stopPropagation();
-		});
-
-		const padding = 8;
-		const boxWidth = 220;
-		const boxHeight = 42;
-		const x = svgCoords.x - boxWidth / 2;
-		const y = svgCoords.y - boxHeight - 12;
-
-		const rect = document.createElementNS(SVG_NS, "rect");
-		rect.setAttribute("x", x);
-		rect.setAttribute("y", y);
-		rect.setAttribute("width", boxWidth);
-		rect.setAttribute("height", boxHeight);
-		rect.setAttribute("rx", 4);
-
-		const label = document.createElementNS(SVG_NS, "text");
-		label.setAttribute("x", x + padding);
-		label.setAttribute("y", y + 25);
-		label.setAttribute("font-size", "14");
-		label.setAttribute("font-family", "Arial, Helvetica, sans-serif");
-		label.textContent = text;
-
-		group.appendChild(rect);
-		group.appendChild(label);
-		svg.appendChild(group);
-	}
-
-	function observeScoreRender(scoreId, onRender) {
-		const score = document.getElementById(scoreId);
-
-		const observer = new MutationObserver(() => {
-			const svg = score.querySelector("svg");
-			if (svg) onRender(svg, score, observer);
-			svg.querySelectorAll("g.note").forEach(note => {
-				note.addEventListener("click", (event) => {
-					event.stopPropagation();
-					clearSelectedNotes();
-					clearAnnotationBoxes(svg);
-					note.classList.add("selected-note");
-					const noteId = note.id;
-					console.log(note);
-					const matchingAnnotations = getAnnotationsForElement(noteId);
-					if (matchingAnnotations.length > 0) {
-						const annotationText = matchingAnnotations
-							.map(annotation => annotation.text)
-							.join("\n");
-						showAnnotationBox(svg, note, annotationText);
-					}
-				});
-			});
-		});
-
-		observer.observe(score, { childList: true });
-	}
-
-	document.addEventListener("click", () => {
-		clearSelectedNotes();
-		clearAnnotationBoxes();
-	});
-
-	document.addEventListener("DOMContentLoaded", () => {
-		observeScoreRender("score1", (svg) => {
-			console.log("score1 rendered", svg);
-		});
-
-		observeScoreRender("score2", (svg) => {
-			console.log("score2 rendered", svg);
-		});
-	});
-	</script>
-	
-  </body>
+        <div class="content-section">
+            <h1>Welcome</h1>
+            <p>
+                This site is a work in progress.
+                <br>If any bugs or issues occur, make sure to run the website in a "fresh" browser instance by opening it in a private/incognito window.
+                <br>The site is currently only being tested in the lastest version of Google Chrome, but it should normally work without issues on other common browsers.
+                <br>Make sure to also refresh the webpage whenever serious issues occur with the score rendering.
+                <br>
+                <br>Use the navigation bar at the top to find scenes from the opera that you wish to view. The website currently supports Acts 1 and 2 of the 1906 version (without lyrics and text!).
+                <br>The "sandbox" section showcases the most advanced version of the score viewer using a single scene as a test case. This scene supports both the 1906 and 1909 versions.
+            </p>
+        </div>
+    </body>
 </html>
