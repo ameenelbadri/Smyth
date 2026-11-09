@@ -866,6 +866,7 @@
                      <measure xml:id="jkzmev" n="13">
                         <staff xml:id="sj9rxb0" n="1">
                            <layer xml:id="wsw41yg" n="1">
+                              <annot xml:id="ankdxo7" plist="#w1epfau7" type="score">SEE EXTRACT</annot>
                               <rest xml:id="x18od9wv" dur.ppq="240" dur="2" />
                               <rest xml:id="c14ubcvc" dur.ppq="120" dur="4" />
                               <beam xml:id="gukscsx">
